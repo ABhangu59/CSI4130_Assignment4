@@ -56,6 +56,8 @@ class SpaceFlythrough {
         const starGeometry = new THREE.BufferGeometry();
         const starCount = 10000;
         const positions = new Float32Array(starCount * 3);
+        const sizes = new Float32Array(starCount);
+        const colors = new Float32Array(starCount * 3);
 
         for (let i = 0; i < starCount * 3; i += 3) {
             // Randomly distribute stars in a large spherical volume
@@ -66,19 +68,102 @@ class SpaceFlythrough {
             positions[i] = r * Math.sin(phi) * Math.cos(theta);
             positions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
             positions[i + 2] = r * Math.cos(phi);
+            
+            // Random star sizes - some stars appear larger than others
+            sizes[i/3] = Math.random() * 1.5 + 0.2;
+            
+            // Realistic star colors based on stellar classification
+            const colorType = Math.random();
+            if (colorType > 0.98) {
+                // Blue stars (O and B class) - hottest
+                colors[i] = 0.7;
+                colors[i+1] = 0.7;
+                colors[i+2] = 1.0;
+            } else if (colorType > 0.95) {
+                // White-blue stars (A class)
+                colors[i] = 0.9;
+                colors[i+1] = 0.9;
+                colors[i+2] = 1.0;
+            } else if (colorType > 0.85) {
+                // White stars (F class)
+                colors[i] = 1.0;
+                colors[i+1] = 1.0;
+                colors[i+2] = 1.0;
+            } else if (colorType > 0.65) {
+                // Yellow stars like our Sun (G class)
+                colors[i] = 1.0;
+                colors[i+1] = 1.0;
+                colors[i+2] = 0.8;
+            } else if (colorType > 0.4) {
+                // Orange stars (K class)
+                colors[i] = 1.0;
+                colors[i+1] = 0.8;
+                colors[i+2] = 0.5;
+            } else {
+                // Red stars (M class) - coolest
+                colors[i] = 1.0;
+                colors[i+1] = 0.5;
+                colors[i+2] = 0.5;
+            }
         }
 
         starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        starGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+        starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
+        // Create a circular glow texture for stars
+        const starTexture = this.createRealisticStarTexture();
+        
         const starMaterial = new THREE.PointsMaterial({ 
-            color: 0xffffff, 
-            size: 0.1,
+            size: 0.4,
             transparent: true,
-            opacity: 0.8
+            opacity: 1.0,
+            vertexColors: true,
+            map: starTexture,
+            alphaTest: 0.001, // Lower value to avoid hard edges
+            sizeAttenuation: true,
+            blending: THREE.AdditiveBlending, // Makes stars glow when they overlap
+            depthWrite: false // Prevents z-fighting between stars
         });
 
         const stars = new THREE.Points(starGeometry, starMaterial);
         this.scene.add(stars);
+    }
+    
+    createRealisticStarTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const context = canvas.getContext('2d');
+        
+        // Clear canvas
+        context.fillStyle = 'black';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Create a circular gradient for a realistic star appearance
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = canvas.width / 3;
+        
+        // Create a radial gradient
+        const gradient = context.createRadialGradient(
+            centerX, centerY, 0,
+            centerX, centerY, radius
+        );
+        
+        // Bright center fading to transparent edges
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.1, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        context.fill();
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        return texture;
     }
 
     loadSpaceModel(path) {
