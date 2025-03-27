@@ -15,11 +15,12 @@ class SpaceFlythrough {
             0.1, 
             1000
         );
-        this.camera.position.z = 5;
+        this.camera.position.z = 15; // Move camera back to see both sun and surfer
 
-        // Renderer
+        // Renderer with improved settings
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.physicallyCorrectLights = true; // More realistic lighting
         document.getElementById(containerId).appendChild(this.renderer.domElement);
 
         // Orbit Controls
@@ -33,14 +34,55 @@ class SpaceFlythrough {
         // Star Particle System
         this.createStarfield();
 
-        // Load 3D Model
+        // Create the sun at the center
+        this.createSun();
+
+        // Load Silver Surfer model
         this.loadSpaceModel('../Assets/silver_surfer.glb');
+        
+        // Position the Silver Surfer away from the sun
+        if (this.spaceModel) {
+            this.spaceModel.position.set(8, 0, 0);
+        }
 
         // Animation loop
         this.animate();
 
         // Resize handler
         window.addEventListener('resize', this.onWindowResize.bind(this));
+    }
+
+    animate() {
+        requestAnimationFrame(this.animate.bind(this));
+        
+        // Add rotation to the Silver Surfer model
+        if (this.spaceModel) {
+            this.spaceModel.rotation.y += 0.01;
+        }
+        
+        // Add subtle rotation to the sun
+        if (this.sun) {
+            this.sun.rotation.y += 0.002;
+            
+            // Pulsating effect for the sun
+            this.sunPulseTime += 0.05 * this.sunPulseDirection;
+            if (this.sunPulseTime > 1) {
+                this.sunPulseDirection = -1;
+            } else if (this.sunPulseTime < 0) {
+                this.sunPulseDirection = 1;
+            }
+            
+            // Apply pulsating effect to sun's emissive intensity
+            this.sun.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    // Pulsate between 0.8 and 1.2 intensity
+                    child.material.emissiveIntensity = 1.0 + Math.sin(this.sunPulseTime * Math.PI) * 0.2;
+                }
+            });
+        }
+
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
     }
 
     addLighting() {
@@ -259,16 +301,56 @@ class SpaceFlythrough {
         // You can call animateParticles in your animation loop for dynamic effect
     }
 
-    animate() {
-        requestAnimationFrame(this.animate.bind(this));
-        
-        // Add rotation or movement to your model
-        if (this.spaceModel) {
-            this.spaceModel.rotation.y += 0.01;
-        }
-
-        this.controls.update();
-        this.renderer.render(this.scene, this.camera);
+    createSun() {
+        const loader = new GLTFLoader();
+        loader.load(
+            '../Assets/sun.glb',
+            (gltf) => {
+                this.sun = gltf.scene;
+                
+                // Position the sun at the center
+                this.sun.position.set(0, 0, 0);
+                
+                // Scale the sun to a more appropriate size
+                this.sun.scale.set(0.8, 0.8, 0.8);
+                
+                // Enhance the sun's material while preserving its texture
+                this.sun.traverse((child) => {
+                    if (child.isMesh) {
+                        // Clone the original material to preserve its properties
+                        const originalMaterial = child.material;
+                        
+                        // Create a new material that preserves the texture but adds glow
+                        const enhancedMaterial = new THREE.MeshStandardMaterial({
+                            map: originalMaterial.map,           // Preserve the original texture                 // Orange-red glow
+                            emissiveIntensity: 1.0,              // Strong glow
+                            roughness: 0.8,                      // Some roughness for texture detail
+                            metalness: 0.0                       // Non-metallic
+                        });
+                        
+                        // Apply the enhanced material
+                        child.material = enhancedMaterial;
+                    }
+                });
+                
+                this.scene.add(this.sun);
+                
+                // Add a point light at the sun's position
+                const sunLight = new THREE.PointLight(0xffffcc, 1.5, 50);
+                sunLight.position.set(0, 0, 0);
+                this.scene.add(sunLight);
+                
+                // Initialize sun pulse properties
+                this.sunPulseTime = 0;
+                this.sunPulseDirection = 1;
+            },
+            (progress) => {
+                console.log('Loading sun model:', (progress.loaded / progress.total * 100) + '%');
+            },
+            (error) => {
+                console.error('Error loading sun model:', error);
+            }
+        );
     }
 
     onWindowResize() {
