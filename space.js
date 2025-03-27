@@ -33,8 +33,8 @@ class SpaceFlythrough {
         // Star Particle System
         this.createStarfield();
 
-        // Load 3D Model (replace with your model path)
-        this.loadSpaceModel('./silver_surfer.glb');
+        // Load 3D Model
+        this.loadSpaceModel('../Assets/silver_surfer.glb');
 
         // Animation loop
         this.animate();
@@ -60,17 +60,29 @@ class SpaceFlythrough {
         const colors = new Float32Array(starCount * 3);
 
         for (let i = 0; i < starCount * 3; i += 3) {
-            // Randomly distribute stars in a large spherical volume
-            const r = Math.random() * 100;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.random() * Math.PI * 2;
-
-            positions[i] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i + 1] = r * Math.sin(phi) * Math.sin(theta);
-            positions[i + 2] = r * Math.cos(phi);
+            // Use a more uniform distribution to avoid center clustering
+            // This creates a more even distribution in a cube rather than a sphere
+            positions[i] = (Math.random() - 0.5) * 200;     // X position
+            positions[i + 1] = (Math.random() - 0.5) * 200; // Y position
+            positions[i + 2] = (Math.random() - 0.5) * 200; // Z position
             
-            // Random star sizes - some stars appear larger than others
-            sizes[i/3] = Math.random() * 1.5 + 0.2;
+            // Create a minimum distance from center to avoid clustering
+            const distFromCenter = Math.sqrt(
+                positions[i] * positions[i] + 
+                positions[i + 1] * positions[i + 1] + 
+                positions[i + 2] * positions[i + 2]
+            );
+            
+            // If too close to center, push it outward
+            if (distFromCenter < 20) {
+                const factor = 20 / distFromCenter;
+                positions[i] *= factor;
+                positions[i + 1] *= factor;
+                positions[i + 2] *= factor;
+            }
+            
+            // Mix of larger and smaller stars
+            sizes[i/3] = Math.random() * 1.2 + 0.2;
             
             // Realistic star colors based on stellar classification
             const colorType = Math.random();
@@ -115,15 +127,15 @@ class SpaceFlythrough {
         const starTexture = this.createRealisticStarTexture();
         
         const starMaterial = new THREE.PointsMaterial({ 
-            size: 0.4,
+            size: 0.6,  // Larger size for more prominent stars
             transparent: true,
-            opacity: 1.0,
+            opacity: 0.95,  // Slightly higher opacity
             vertexColors: true,
             map: starTexture,
-            alphaTest: 0.001, // Lower value to avoid hard edges
+            alphaTest: 0.001,
             sizeAttenuation: true,
-            blending: THREE.AdditiveBlending, // Makes stars glow when they overlap
-            depthWrite: false // Prevents z-fighting between stars
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
         });
 
         const stars = new THREE.Points(starGeometry, starMaterial);
@@ -132,8 +144,8 @@ class SpaceFlythrough {
     
     createRealisticStarTexture() {
         const canvas = document.createElement('canvas');
-        canvas.width = 32;
-        canvas.height = 32;
+        canvas.width = 64; // Increased resolution for better quality
+        canvas.height = 64;
         const context = canvas.getContext('2d');
         
         // Clear canvas
@@ -145,22 +157,48 @@ class SpaceFlythrough {
         const centerY = canvas.height / 2;
         const radius = canvas.width / 3;
         
-        // Create a radial gradient
+        // Create a radial gradient with more pronounced light effect
         const gradient = context.createRadialGradient(
             centerX, centerY, 0,
             centerX, centerY, radius
         );
         
-        // Bright center fading to transparent edges
+        // Brighter center with more defined glow
         gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-        gradient.addColorStop(0.1, 'rgba(255, 255, 255, 0.8)');
-        gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.4)');
+        gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+        gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.2)');
         gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
         
         context.fillStyle = gradient;
         context.beginPath();
         context.arc(centerX, centerY, radius, 0, Math.PI * 2);
         context.fill();
+        
+        // Add a subtle cross-shaped light diffraction effect
+        context.globalCompositeOperation = 'lighter';
+        
+        // Horizontal light streak
+        const horizontalGradient = context.createLinearGradient(0, centerY, canvas.width, centerY);
+        horizontalGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        horizontalGradient.addColorStop(0.4, 'rgba(255, 255, 255, 0)');
+        horizontalGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+        horizontalGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0)');
+        horizontalGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        context.fillStyle = horizontalGradient;
+        context.fillRect(0, centerY - radius/6, canvas.width, radius/3);
+        
+        // Vertical light streak
+        const verticalGradient = context.createLinearGradient(centerX, 0, centerX, canvas.height);
+        verticalGradient.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        verticalGradient.addColorStop(0.4, 'rgba(255, 255, 255, 0)');
+        verticalGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+        verticalGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0)');
+        verticalGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        context.fillStyle = verticalGradient;
+        context.fillRect(centerX - radius/6, 0, radius/3, canvas.height);
         
         const texture = new THREE.CanvasTexture(canvas);
         return texture;
@@ -224,7 +262,7 @@ class SpaceFlythrough {
     animate() {
         requestAnimationFrame(this.animate.bind(this));
         
-        // Optional: Add rotation or movement to your model
+        // Add rotation or movement to your model
         if (this.spaceModel) {
             this.spaceModel.rotation.y += 0.01;
         }
