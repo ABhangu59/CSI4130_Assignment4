@@ -27,7 +27,7 @@ class SpaceFlythrough {
         this.controls.enableDamping = true;
         this.controls.dampingFactor = 0.05;
 
-        // Lighting
+        // Lighting - Adding a point light to shine on the model
         this.addLighting();
 
         // Star Particle System
@@ -36,20 +36,44 @@ class SpaceFlythrough {
         // Load 3D Model (replace with your model path)
         this.loadSpaceModel('./silver_surfer.glb');
 
+        // Key state tracking for movement
+        this.keyState = {
+            'W': false,  // Tilt down (X axis)
+            'S': false,  // Tilt up (X axis)
+            'A': false,  // Tilt left (Z axis)
+            'D': false   // Tilt right (Z axis)
+        };
+
+        // Event listeners for keydown and keyup
+        window.addEventListener('keydown', this.onKeyDown.bind(this));
+        window.addEventListener('keyup', this.onKeyUp.bind(this));
+
         // Animation loop
         this.animate();
 
         // Resize handler
         window.addEventListener('resize', this.onWindowResize.bind(this));
+
+        // Hover variables
+        this.hoverSpeed = 0.1;
+        this.hoverDirection = 1; // Controls the oscillation direction
+        this.hoverAngle = 0; // For random-like oscillation
+        this.hoverOffsetX = 0; // X-axis offset
+        this.hoverOffsetY = 0; // Y-axis offset
     }
 
     addLighting() {
-        const ambientLight = new THREE.AmbientLight(0x404040);
+        const ambientLight = new THREE.AmbientLight(0x404040, 2); // Brighter ambient light
         this.scene.add(ambientLight);
 
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Brighter directional light
         directionalLight.position.set(1, 1, 1);
         this.scene.add(directionalLight);
+
+        // Adding a point light to shine on the model
+        this.pointLight = new THREE.PointLight(0xffffff, 2, 10); // White light with intensity of 2
+        this.pointLight.position.set(0, 1, 2); // Position the light slightly above and in front
+        this.scene.add(this.pointLight);
     }
 
     createStarfield() {
@@ -58,7 +82,6 @@ class SpaceFlythrough {
         const positions = new Float32Array(starCount * 3);
 
         for (let i = 0; i < starCount * 3; i += 3) {
-            // Randomly distribute stars in a large spherical volume
             const r = Math.random() * 100;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.random() * Math.PI * 2;
@@ -87,6 +110,7 @@ class SpaceFlythrough {
             path,
             (gltf) => {
                 this.spaceModel = gltf.scene;
+                this.spaceModel.rotation.y = Math.PI; // Start facing negative Z-axis
                 this.scene.add(this.spaceModel);
             },
             (progress) => {
@@ -98,51 +122,75 @@ class SpaceFlythrough {
         );
     }
 
-    // Optional: Exhaust/Explosion Particle Effect
-    createExhaustParticles(position) {
-        const particlesGeometry = new THREE.BufferGeometry();
-        const particlesCount = 1000;
-        const positions = new Float32Array(particlesCount * 3);
-
-        for (let i = 0; i < particlesCount * 3; i += 3) {
-            positions[i] = position.x + (Math.random() - 0.5) * 2;
-            positions[i + 1] = position.y + (Math.random() - 0.5) * 2;
-            positions[i + 2] = position.z + (Math.random() - 0.5) * 2;
+    // Event handler for keydown
+    onKeyDown(event) {
+        const key = event.key.toUpperCase();
+        if (key in this.keyState) {
+            this.keyState[key] = true;
         }
+    }
 
-        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    // Event handler for keyup
+    onKeyUp(event) {
+        const key = event.key.toUpperCase();
+        if (key in this.keyState) {
+            this.keyState[key] = false;
+        }
+    }
 
-        const particlesMaterial = new THREE.PointsMaterial({
-            color: 0xff6600,  // Fiery orange
-            size: 0.05,
-            transparent: true,
-            opacity: 0.7
-        });
+    // Handle tilting based on key input
+    tiltModel() {
+        const tiltSpeed = 0.01; // Slow down the tilt speed
 
-        const exhaustParticles = new THREE.Points(particlesGeometry, particlesMaterial);
-        this.scene.add(exhaustParticles);
-
-        // Optional: Animate particle dispersion
-        const animateParticles = () => {
-            const positions = exhaustParticles.geometry.attributes.position.array;
-            for (let i = 0; i < positions.length; i += 3) {
-                positions[i] += (Math.random() - 0.5) * 0.1;
-                positions[i + 1] += (Math.random() - 0.5) * 0.1;
-                positions[i + 2] += (Math.random() - 0.5) * 0.1;
+        if (this.spaceModel) {
+            // Tilt down (W) - Rotate the model on the X-axis (counterclockwise)
+            if (this.keyState['W']) {
+                this.spaceModel.rotation.x += tiltSpeed;  // Tilting downward on X-axis
             }
-            exhaustParticles.geometry.attributes.position.needsUpdate = true;
-        };
 
-        // You can call animateParticles in your animation loop for dynamic effect
+            // Tilt up (S) - Rotate the model on the X-axis (clockwise)
+            if (this.keyState['S']) {
+                this.spaceModel.rotation.x -= tiltSpeed;  // Tilting upward on X-axis
+            }
+
+            // Tilt left (A) - Rotate the model on the Z-axis (counterclockwise)
+            if (this.keyState['A']) {
+                this.spaceModel.rotation.z -= tiltSpeed;  // Tilting left on Z-axis
+            }
+
+            // Tilt right (D) - Rotate the model on the Z-axis (clockwise)
+            if (this.keyState['D']) {
+                this.spaceModel.rotation.z += tiltSpeed;  // Tilting right on Z-axis
+            }
+        }
+    }
+
+    // Apply subtle hovering effect (non-looping, gentle)
+    applyHoveringEffect() {
+        if (this.spaceModel) {
+            // Apply subtle random-like movement in X and Y directions
+            this.hoverOffsetX = Math.sin(this.hoverAngle) * 0.002;  // Small oscillation on X-axis
+            this.hoverOffsetY = Math.cos(this.hoverAngle) * 0.002;  // Small oscillation on Y-axis
+            this.hoverOffsetZ = Math.cos(this.hoverAngle) * 0.005;  // Small oscillation on Y-axis
+
+
+            this.spaceModel.position.x += this.hoverOffsetX;
+            this.spaceModel.position.y += this.hoverOffsetY;
+            this.spaceModel.position.z += this.hoverOffsetZ;
+
+            // Increment the hover angle for next frame
+            this.hoverAngle += 0.05; // Slow oscillation
+        }
     }
 
     animate() {
         requestAnimationFrame(this.animate.bind(this));
-        
-        // Optional: Add rotation or movement to your model
-        if (this.spaceModel) {
-            this.spaceModel.rotation.y += 0.01;
-        }
+
+        // Tilt the model based on key input (steering effect)
+        this.tiltModel();
+
+        // Apply subtle hovering effect
+        this.applyHoveringEffect();
 
         this.controls.update();
         this.renderer.render(this.scene, this.camera);
@@ -157,3 +205,4 @@ class SpaceFlythrough {
 
 // Initialize the scene
 const spaceFlythrough = new SpaceFlythrough('scene-container');
+
