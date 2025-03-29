@@ -219,7 +219,7 @@ class SpaceFlythrough {
 
   createStarfield() {
     const starGeometry = new THREE.BufferGeometry();
-    const starCount = 10000;
+    const starCount = 20000;
     const positions = new Float32Array(starCount * 3);
     const sizes = new Float32Array(starCount);
     const colors = new Float32Array(starCount * 3);
@@ -227,9 +227,9 @@ class SpaceFlythrough {
     for (let i = 0; i < starCount * 3; i += 3) {
       // Use a more uniform distribution to avoid center clustering
       // This creates a more even distribution in a cube rather than a sphere
-      positions[i] = (Math.random() - 0.5) * 200; // X position
-      positions[i + 1] = (Math.random() - 0.5) * 200; // Y position
-      positions[i + 2] = (Math.random() - 0.5) * 200; // Z position
+      positions[i] = (Math.random() - 0.5) * 300; // X position
+      positions[i + 1] = (Math.random() - 0.5) * 300; // Y position
+      positions[i + 2] = (Math.random() - 0.5) * 300; // Z position
 
       // Create a minimum distance from center to avoid clustering
       const distFromCenter = Math.sqrt(
@@ -494,6 +494,14 @@ class SpaceFlythrough {
       );
     }
 
+    // Up/down movement
+    if (this.keyState["Q"]) {
+      this.spaceModel.position.y += currentSpeed;
+    }
+    if (this.keyState["E"]) {
+      this.spaceModel.position.y -= currentSpeed;
+    }
+    
     // Return to level flight when not banking left/right
     if (!this.keyState["A"] && !this.keyState["D"]) {
       // Return to level flight (gradually decrease z rotation)
