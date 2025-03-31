@@ -1,12 +1,38 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+
 // Remove OrbitControls import since we're not using it
 
 class SpaceFlythrough {
   constructor(containerId) {
     // Scene setup
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000022); // Deep space blue-black
+    // Load the HDR environment map
+    const rgbeLoader = new RGBELoader();
+    rgbeLoader.load('./HDR_silver_and_gold_nebulae.hdr', (texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        this.scene.background = texture;
+        this.scene.environment = texture;
+        
+        // Update materials on the Silver Surfer if it's already loaded:
+        if (this.spaceModel) {
+          this.spaceModel.traverse((child) => {
+            if (child.isMesh) {
+              child.material.envMap = texture;
+              child.material.envMapIntensity = 2.0;
+              child.material.needsUpdate = true;
+            }
+          });
+        }
+    });
+
+    //this.scene.background = new THREE.Color(0x000022); // Deep space blue-black
 
     // Camera
     this.camera = new THREE.PerspectiveCamera(
@@ -21,10 +47,42 @@ class SpaceFlythrough {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.physicallyCorrectLights = true; // More realistic lighting
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    // Optionally, set some limits or damping:
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+
+
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+    const bloomParams = {
+    strength: 2.0,  // Adjust for intensity; higher values yield a stronger bloom
+    radius: 0.5,    // Controls the spread of the bloom effect
+    threshold: 0.3  // Only bright parts of the scene will bloom
+    };
+
+    this.bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    bloomParams.strength,
+    bloomParams.radius,
+    bloomParams.threshold
+    );
+    this.composer.addPass(this.bloomPass);
+
     document.getElementById(containerId).appendChild(this.renderer.domElement);
 
-    // REMOVE ORBIT CONTROLS - Create dummy controls object
-    this.controls = { update: function () {} };
+    // In your constructor, after creating OrbitControls:
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+    this.isUserInteracting = false;
+    this.controls.addEventListener('start', () => { this.isUserInteracting = true; });
+    this.controls.addEventListener('end', () => { this.isUserInteracting = false; });
+
+
+
 
     // Lighting - Adding a point light to shine on the model
     this.addLighting();
@@ -33,10 +91,14 @@ class SpaceFlythrough {
     this.createStarfield();
 
     // Create the sun at the center
-    this.createSun();
+    // this.createSun();
 
     // Load Silver Surfer model
     this.loadSpaceModel("../Assets/silver_surfer.glb");
+
+    this.loadSaturn("../Assets/jedi_star_fighter.glb", new THREE.Vector3(1000, 5, 0), 2);
+    this.loadSaturn("../Assets/destroy.glb", new THREE.Vector3(0, 0, 1000), 2);
+
 
     // Modify key state tracking to include movement keys
     this.keyState = {
@@ -200,6 +262,7 @@ class SpaceFlythrough {
     this.controls.update();
 
     // Render the scene
+    this.composer.render();
     this.renderer.render(this.scene, this.camera);
   }
 
@@ -401,20 +464,19 @@ class SpaceFlythrough {
 
         // Enhance materials to make Silver Surfer more visible
         this.spaceModel.traverse((child) => {
-          if (child.isMesh) {
-            // Create a new material to make the Silver Surfer more visible
-            const newMaterial = new THREE.MeshStandardMaterial({
-              color: 0xc0c0c0, // Silver color
-              metalness: 0.7, // Highly metallic
-              roughness: 0.1, // Very smooth
-              emissive: 0x222222, // Slight self-illumination
-              emissiveIntensity: 0.5, // Moderate intensity
-            });
-
-            // Apply the new material
-            child.material = newMaterial;
-          }
-        });
+            if (child.isMesh) {
+              const newMaterial = new THREE.MeshStandardMaterial({
+                color: 0xc0c0c0,      // Silver color
+                metalness: 1.0,       // Fully metallic
+                roughness: 0.1,       // Lower roughness for sharper reflections
+                emissive: 0x222222,   // Slight self-illumination
+                emissiveIntensity: 0.5,
+                envMap: this.scene.environment, 
+                envMapIntensity: 3.0,
+              });
+              child.material = newMaterial;
+            }
+        });          
 
         this.scene.add(this.spaceModel);
 
@@ -531,29 +593,60 @@ class SpaceFlythrough {
     }
   }
 
-  updateCamera() {
-    if (!this.spaceModel) return;
+//   updateCamera() {
+//     if (!this.spaceModel) return;
 
-    // Calculate the desired camera position
-    const modelPosition = new THREE.Vector3();
-    this.spaceModel.getWorldPosition(modelPosition);
+//     // Calculate the desired camera position
+//     const modelPosition = new THREE.Vector3();
+//     this.spaceModel.getWorldPosition(modelPosition);
 
-    // Calculate offset position in world space
-    const offset = this.cameraOffset.clone();
-    offset.applyQuaternion(this.spaceModel.quaternion);
+//     // Calculate offset position in world space
+//     const offset = this.cameraOffset.clone();
+//     offset.applyQuaternion(this.spaceModel.quaternion);
 
-    // Set camera position behind the model
-    const targetPosition = modelPosition.clone().add(offset);
-    this.camera.position.copy(targetPosition);
+//     // Set camera position behind the model
+//     const targetPosition = modelPosition.clone().add(offset);
+//     this.camera.position.copy(targetPosition);
 
-    // Calculate look-ahead point
-    const lookAhead = this.cameraLookAhead.clone();
-    lookAhead.applyQuaternion(this.spaceModel.quaternion);
-    const lookAtPoint = modelPosition.clone().add(lookAhead);
+//     // Calculate look-ahead point
+//     const lookAhead = this.cameraLookAhead.clone();
+//     lookAhead.applyQuaternion(this.spaceModel.quaternion);
+//     const lookAtPoint = modelPosition.clone().add(lookAhead);
 
-    // Make the camera look at the model
-    this.camera.lookAt(lookAtPoint);
-  }
+//     // Make the camera look at the model
+//     this.camera.lookAt(lookAtPoint);
+//     this.controls.target.copy(modelPosition);
+//     this.controls.update();
+//   }
+    updateCamera() {
+        if (!this.spaceModel) return;
+    
+        // Get Silver Surfer's world position
+        const modelPosition = new THREE.Vector3();
+        this.spaceModel.getWorldPosition(modelPosition);
+    
+        // Always update OrbitControls target so Silver Surfer remains centered
+        this.controls.target.copy(modelPosition);
+    
+        // Only update the camera's position when the user is not interacting
+        if (!this.isUserInteracting) {
+        // Clone the fixed offset and rotate it according to Silver Surfer's orientation
+        const offset = this.cameraOffset.clone();
+        offset.applyQuaternion(this.spaceModel.quaternion);
+        // Ensure the offset keeps its original magnitude
+        offset.setLength(this.cameraOffset.length());
+    
+        // Calculate the desired camera position
+        const desiredPosition = modelPosition.clone().add(offset);
+        // Smoothly interpolate to the desired position
+        this.camera.position.lerp(desiredPosition, 0.1);
+        }
+    
+        this.controls.update();
+    }
+  
+  
+  
 
   createSun() {
     const loader = new GLTFLoader();
@@ -561,54 +654,79 @@ class SpaceFlythrough {
       "../Assets/sun.glb",
       (gltf) => {
         this.sun = gltf.scene;
-
-        // Position the sun at the center
+  
+        // Position & scale the sun
         this.sun.position.set(15, 0, 0);
-
-        // Scale the sun to a more appropriate size
         this.sun.scale.set(0.8, 0.8, 0.8);
-
-        // Enhance the sun's material while preserving its texture
+  
+        // Enhance the sun's material with a warmer, orange-red glow
         this.sun.traverse((child) => {
           if (child.isMesh) {
-            // Clone the original material to preserve its properties
             const originalMaterial = child.material;
-
-            // Create a new material that preserves the texture but adds glow
             const enhancedMaterial = new THREE.MeshStandardMaterial({
-              map: originalMaterial.map, // Preserve the original texture                 // Orange-red glow
-              emissiveIntensity: 1.0, // Strong glow
-              roughness: 0.8, // Some roughness for texture detail
-              metalness: 0.0, // Non-metallic
+              map: originalMaterial.map,           // Preserve the original texture
+              emissive: new THREE.Color(0xff4500),   // Warmer orange-red glow
+              emissiveIntensity: 1.0,
+              roughness: 0.8,
+              metalness: 0.0,
             });
-
-            // Apply the enhanced material
             child.material = enhancedMaterial;
           }
         });
-
+  
         this.scene.add(this.sun);
-
-        // Add a point light at the sun's position
-        const sunLight = new THREE.PointLight(0xffffcc, 1.5, 50);
+  
+        // Add a point light near the sun with a warm color tone
+        const sunLight = new THREE.PointLight(0xffe0b3, 1.5, 50);
         sunLight.position.set(0, 0, 0);
         this.scene.add(sunLight);
-
+  
         // Initialize sun pulse properties
         this.sunPulseTime = 0;
         this.sunPulseDirection = 1;
       },
       (progress) => {
-        console.log(
-          "Loading sun model:",
-          (progress.loaded / progress.total) * 100 + "%"
-        );
+        console.log("Loading sun model:", (progress.loaded / progress.total) * 100 + "%");
       },
       (error) => {
         console.error("Error loading sun model:", error);
       }
     );
   }
+  loadSaturn(path, position, scale) {
+    console.log("hey")
+    const loader = new GLTFLoader();
+    loader.load(
+      path,
+      (gltf) => {
+        const saturn = gltf.scene;
+        // Position and scale Saturn
+        saturn.position.copy(position);
+        saturn.scale.set(scale, scale, scale);
+        
+        // Optionally update Saturn's materials to use the environment map for reflections
+        saturn.traverse((child) => {
+          if (child.isMesh) {
+            child.material.envMap = this.scene.environment;
+            child.material.envMapIntensity = 2.0;
+            child.material.needsUpdate = true;
+          }
+        });
+        
+        // Add Saturn to the scene
+        this.scene.add(saturn);
+      },
+      (progress) => {
+        console.log("Loading Saturn: " + (progress.loaded / progress.total) * 100 + "%");
+      },
+      (error) => {
+        console.error("Error loading Saturn model:", error);
+      }
+    );
+  }
+  
+  
+  
 
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
