@@ -91,13 +91,15 @@ class SpaceFlythrough {
     this.createStarfield();
 
     // Create the sun at the center
-    // this.createSun();
+    this.createSun();
 
     // Load Silver Surfer model
     this.loadSpaceModel("../Assets/silver_surfer.glb");
 
-    this.loadSaturn("../Assets/jedi_star_fighter.glb", new THREE.Vector3(1000, 5, 0), 2);
-    this.loadSaturn("../Assets/destroy.glb", new THREE.Vector3(0, 0, 1000), 2);
+    this.loadSaturn("../Assets/jedi_star_fighter.glb", new THREE.Vector3(1000, 5, 0), 1);
+    this.loadSaturn("../Assets/destroy.glb", new THREE.Vector3(0, 0, 700), 2);
+    this.loadSaturn("../Assets/venus.glb", new THREE.Vector3(0, 0, -100), 10);
+    this.loadGalactus("../Assets/galactus.glb", new THREE.Vector3(0, -800, 800), 10);
 
 
     // Modify key state tracking to include movement keys
@@ -290,8 +292,8 @@ class SpaceFlythrough {
     for (let i = 0; i < starCount * 3; i += 3) {
       // Use a more uniform distribution to avoid center clustering
       // This creates a more even distribution in a cube rather than a sphere
-      positions[i] = (Math.random() - 0.5) * 300; // X position
-      positions[i + 1] = (Math.random() - 0.5) * 300; // Y position
+      positions[i] = (Math.random() - 0.5) * 900; // X position
+      positions[i + 1] = (Math.random() - 0.5) * 500; // Y position
       positions[i + 2] = (Math.random() - 0.5) * 300; // Z position
 
       // Create a minimum distance from center to avoid clustering
@@ -448,6 +450,47 @@ class SpaceFlythrough {
     const texture = new THREE.CanvasTexture(canvas);
     return texture;
   }
+
+  loadGalactus(path, position, scale) {
+    const loader = new GLTFLoader();
+    loader.load(
+      path,
+      (gltf) => {
+        const galactus = gltf.scene;
+        // Position and scale Galactus
+        galactus.position.copy(position);
+        galactus.scale.set(scale, scale, scale);
+        
+        // Rotate Galactus 180 degrees around the Y axis
+        galactus.rotation.y = Math.PI;
+        
+        // Optionally update its materials to use the environment map
+        galactus.traverse((child) => {
+          if (child.isMesh) {
+            child.material.envMap = this.scene.environment;
+            child.material.envMapIntensity = 2.0;
+            child.material.needsUpdate = true;
+          }
+        });
+        
+        // Attach a point light to Galactus (if needed)
+        const galactusLight = new THREE.PointLight(0xffffff, 2, 50);
+        galactusLight.position.set(0, 5, 0);
+        galactus.add(galactusLight);
+        
+        // Add Galactus to the scene
+        this.scene.add(galactus);
+      },
+      (progress) => {
+        console.log("Loading Galactus: " + (progress.loaded / progress.total) * 100 + "%");
+      },
+      (error) => {
+        console.error("Error loading Galactus model:", error);
+      }
+    );
+  }
+  
+  
 
   loadSpaceModel(path) {
     const loader = new GLTFLoader();
@@ -656,8 +699,8 @@ class SpaceFlythrough {
         this.sun = gltf.scene;
   
         // Position & scale the sun
-        this.sun.position.set(15, 0, 0);
-        this.sun.scale.set(0.8, 0.8, 0.8);
+        this.sun.position.set(0, 0, -1000);
+        this.sun.scale.set(15, 15, 15);
   
         // Enhance the sun's material with a warmer, orange-red glow
         this.sun.traverse((child) => {
