@@ -6,14 +6,254 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+// Start Screen Class: 
+class StartScreen {
+  constructor(containerId, onStart) {
+    this.container = document.getElementById(containerId);
+    this.onStart = onStart;
+    this.initialize();
+  }
 
-// Remove OrbitControls import since we're not using it
+  initialize() {
+    // Store original content of the container
+    this.originalContent = this.container.innerHTML;
+    
+    // Create start screen elements
+    const startScreen = document.createElement('div');
+    startScreen.className = 'start-screen';
+    startScreen.style.position = 'absolute';
+    startScreen.style.top = '0';
+    startScreen.style.left = '0';
+    startScreen.style.width = '100%';
+    startScreen.style.height = '100%';
+    startScreen.style.backgroundColor = 'rgba(0, 5, 20, 0.9)';
+    startScreen.style.display = 'flex';
+    startScreen.style.flexDirection = 'column';
+    startScreen.style.justifyContent = 'center';
+    startScreen.style.alignItems = 'center';
+    startScreen.style.zIndex = '1000';
+    startScreen.style.backgroundImage = 'url(https://cdn.earthsky.org/2023/10/silver-surfer-cosmic-rays-nasa.jpg)';
+    startScreen.style.backgroundSize = 'cover';
+    startScreen.style.backgroundPosition = 'center';
+    startScreen.style.backgroundBlendMode = 'soft-light';
+    
+    // Creating title element
+    const title = document.createElement('h1');
+    title.textContent = 'COSMO-SURF';
+    title.style.fontFamily = '"Orbitron", sans-serif';
+    title.style.fontSize = '4rem';
+    title.style.color = 'silver';
+    title.style.textShadow = '0 0 10px #66ccff, 0 0 20px #3399ff';
+    title.style.marginBottom = '2rem';
+    title.style.letterSpacing = '0.5rem';
+    
+    // Creating subtitle
+    const subtitle = document.createElement('p');
+    subtitle.textContent = 'Surf the celestial waves through the cosmic void with the Silver Surfer, herald of Galactus';
+    subtitle.style.fontFamily = '"Orbitron", sans-serif';
+    subtitle.style.fontSize = '1.5rem';
+    subtitle.style.color = '#a3bccc';
+    subtitle.style.marginBottom = '4rem';
+    
+    // Creating the controls info doc
+    const controls = document.createElement('div');
+    controls.className = 'controls-info';
+    controls.style.backgroundColor = 'rgba(0, 10, 30, 0.7)';
+    controls.style.padding = '1.5rem';
+    controls.style.borderRadius = '10px';
+    controls.style.marginBottom = '3rem';
+    controls.style.maxWidth = '500px';
+    controls.style.backdropFilter = 'blur(5px)';
+    controls.style.border = '1px solid rgba(102, 204, 255, 0.2)';
+    controls.style.boxShadow = '0 0 20px rgba(102, 204, 255, 0.3)';
+    
+    // Some Inner HTML to make it look pretty 
+    controls.innerHTML = `
+      <h3 style="color: #66ccff; margin-bottom: 1rem; font-family: 'Orbitron', sans-serif;">NAVIGATION CONTROLS</h3>
+      <ul style="color: #a3bccc; text-align: left; font-family: 'Space Mono', monospace; line-height: 1.6;">
+        <li><span style="color: #66ccff;">W</span> - Move forward</li>
+        <li><span style="color: #66ccff;">S</span> - Move backward</li>
+        <li><span style="color: #66ccff;">A</span> - Move left</li>
+        <li><span style="color: #66ccff;">D</span> - Move right</li>
+        <li><span style="color: #66ccff;">Q</span> - Move up</li>
+        <li><span style="color: #66ccff;">E</span> - Move down</li>
+        <li><span style="color: #66ccff;">SHIFT</span> - Speed boost</li>
+        <li><span style="color: #66ccff;">Mouse</span> - Look around</li>
+      </ul>
+    `;
+    
+    // Creating the start button, all through JS code
+    const startButton = document.createElement('button');
+    startButton.textContent = 'BEGIN JOURNEY';
+    startButton.style.fontFamily = '"Orbitron", sans-serif';
+    startButton.style.fontSize = '1.5rem';
+    startButton.style.padding = '1rem 3rem';
+    startButton.style.backgroundColor = 'rgba(102, 204, 255, 0.2)';
+    startButton.style.color = '#66ccff';
+    startButton.style.border = '2px solid #66ccff';
+    startButton.style.borderRadius = '5px';
+    startButton.style.cursor = 'pointer';
+    startButton.style.transition = 'all 0.3s ease';
+    startButton.style.boxShadow = '0 0 15px rgba(102, 204, 255, 0.5)';
+    startButton.style.textTransform = 'uppercase';
+    startButton.style.letterSpacing = '0.2rem';
+    
+    // CSS Styling for the Hover
+    startButton.onmouseover = function() {
+      this.style.backgroundColor = 'rgba(102, 204, 255, 0.4)';
+      this.style.boxShadow = '0 0 20px rgba(102, 204, 255, 0.8)';
+    };
+    
+    // CSS Styling for the Hover but when leaving 
+    startButton.onmouseout = function() {
+      this.style.backgroundColor = 'rgba(102, 204, 255, 0.2)';
+      this.style.boxShadow = '0 0 15px rgba(102, 204, 255, 0.5)';
+    };
+    
+    // OnClick for the Button 
+    startButton.onclick = () => {
+      this.hide();
+    };
+    
+    // Importing Fonts 
+    const fontLink = document.createElement('link');
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Space+Mono&display=swap';
+    fontLink.rel = 'stylesheet';
+    document.head.appendChild(fontLink);
+    
+    // Putting the screen together like glue 
+    startScreen.appendChild(title);
+    startScreen.appendChild(subtitle);
+    startScreen.appendChild(controls);
+    startScreen.appendChild(startButton);
+    
+    // Adding the start screen to the container
+    this.container.appendChild(startScreen);
+    
+    // And at last, keep a reference. 
+    this.startScreen = startScreen;
+  }
+  
+  // This is the function to hide the start screen
+  hide() {
+    // Fade out animation
+    this.startScreen.style.transition = 'opacity 1s ease';
+    this.startScreen.style.opacity = '0';
+    
+    // After animation completes, we remove the start screen and call onStart callback
+    setTimeout(() => {
+      this.container.removeChild(this.startScreen);
+      if (typeof this.onStart === 'function') {
+        this.onStart();
+      }
+    }, 1000);
+  }
+  
+  show() {
+    this.startScreen.style.opacity = '1';
+    this.container.appendChild(this.startScreen);
+  }
+}
 
+let spaceFlythrough;
+
+// Making div for the scene container if it doesn't exist
+document.addEventListener('DOMContentLoaded', () => {
+  if (!document.getElementById('scene-container')) {
+    const sceneContainer = document.createElement('div');
+    sceneContainer.id = 'scene-container';
+    sceneContainer.style.width = '100%';
+    sceneContainer.style.height = '100vh';
+    sceneContainer.style.position = 'relative';
+    sceneContainer.style.overflow = 'hidden';
+    document.body.appendChild(sceneContainer);
+  }
+  
+  // Creating the loading indicator
+  const loadingOverlay = document.createElement('div');
+  loadingOverlay.style.position = 'absolute';
+  loadingOverlay.style.top = '0';
+  loadingOverlay.style.left = '0';
+  loadingOverlay.style.width = '100%';
+  loadingOverlay.style.height = '100%';
+  loadingOverlay.style.backgroundColor = 'rgba(0, 5, 20, 0.9)';
+  loadingOverlay.style.display = 'flex';
+  loadingOverlay.style.justifyContent = 'center';
+  loadingOverlay.style.alignItems = 'center';
+  loadingOverlay.style.zIndex = '999';
+  
+  const loadingText = document.createElement('div');
+  loadingText.textContent = 'LOADING UNIVERSE...';
+  loadingText.style.color = '#66ccff';
+  loadingText.style.fontFamily = '"Orbitron", sans-serif';
+  loadingText.style.fontSize = '2rem';
+  loadingText.style.textShadow = '0 0 10px #66ccff';
+  
+  loadingOverlay.appendChild(loadingText);
+  document.getElementById('scene-container').appendChild(loadingOverlay);
+  
+  // Initialize the start screen after a delay to simulate loading
+  setTimeout(() => {
+    document.getElementById('scene-container').removeChild(loadingOverlay);
+    
+    // Initialize the start screen
+    const startScreen = new StartScreen('scene-container', () => {
+      // Create the space flythrough when the start button is clicked
+      spaceFlythrough = new SpaceFlythrough('scene-container');
+      
+      // Add event listener for ESC key to show the start screen again
+      window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          startScreen.show();
+        }
+      });
+    });
+  }, 3000);
+});
+
+// Add this CSS to the page
+const styleElement = document.createElement('style');
+styleElement.textContent = `
+  body, html {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    background-color: #000514;
+  }
+  
+  /* Add a pulsating animation to the start button */
+  @keyframes pulse {
+    0% { box-shadow: 0 0 15px rgba(102, 204, 255, 0.5); }
+    50% { box-shadow: 0 0 25px rgba(102, 204, 255, 0.8); }
+    100% { box-shadow: 0 0 15px rgba(102, 204, 255, 0.5); }
+  }
+  
+  .start-screen button {
+    animation: pulse 2s infinite;
+  }
+  
+  /* Loading spinner animation */
+  @keyframes loadingPulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+  
+  #scene-container > div:first-child {
+    animation: loadingPulse 1.5s infinite;
+  }
+`;
+document.head.appendChild(styleElement);
+
+
+// CLass FOr thE galaxy: 
 class SpaceFlythrough {
   constructor(containerId) {
     // Scene setup
     this.scene = new THREE.Scene();
-    // Load the HDR environment map
+    // Loading the HDR environment map
     const rgbeLoader = new RGBELoader();
     rgbeLoader.load('./HDR_silver_and_gold_nebulae.hdr', (texture) => {
         texture.mapping = THREE.EquirectangularReflectionMapping;
@@ -32,8 +272,6 @@ class SpaceFlythrough {
         }
     });
 
-    //this.scene.background = new THREE.Color(0x000022); // Deep space blue-black
-
     // Camera
     this.camera = new THREE.PerspectiveCamera(
       69,
@@ -43,13 +281,13 @@ class SpaceFlythrough {
     );
     this.camera.position.z = 10; // Move camera back to see both sun and surfer
 
-    // Renderer with improved settings
+    // Our renderer with improved settings
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.physicallyCorrectLights = true; // More realistic lighting
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    // Optionally, set some limits or damping:
+    // playing wih lighting
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
 
@@ -58,8 +296,8 @@ class SpaceFlythrough {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
 
     const bloomParams = {
-    strength: 2.0,  // Adjust for intensity; higher values yield a stronger bloom
-    radius: 0.5,    // Controls the spread of the bloom effect
+    strength: 2.0,  // Adjusting for intensity; higher values yield a stronger bloom
+    radius: 0.5,    // Controling the spread of the bloom effect
     threshold: 0.3  // Only bright parts of the scene will bloom
     };
 
@@ -73,7 +311,6 @@ class SpaceFlythrough {
 
     document.getElementById(containerId).appendChild(this.renderer.domElement);
 
-    // In your constructor, after creating OrbitControls:
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
@@ -81,19 +318,16 @@ class SpaceFlythrough {
     this.controls.addEventListener('start', () => { this.isUserInteracting = true; });
     this.controls.addEventListener('end', () => { this.isUserInteracting = false; });
 
-
-
-
-    // Lighting - Adding a point light to shine on the model
+    // Adding a point light to shine on the model
     this.addLighting();
 
     // Star Particle System
     this.createStarfield();
 
-    // Create the sun at the center
+    // Creating the sun at the center
     this.createSun();
 
-    // Load Silver Surfer model
+    // Loading Silver Surfer model
     this.loadSpaceModel("../Assets/silver_surfer.glb");
 
     this.loadSaturn("../Assets/jedi_star_fighter.glb", new THREE.Vector3(1000, 5, 0), 1);
@@ -102,7 +336,7 @@ class SpaceFlythrough {
     this.loadGalactus("../Assets/galactus.glb", new THREE.Vector3(0, -800, 800), 10);
 
 
-    // Modify key state tracking to include movement keys
+    // Modifying key state tracking to include movement keys
     this.keyState = {
       W: false, // Move forward
       S: false, // Move backward
@@ -113,14 +347,14 @@ class SpaceFlythrough {
       SHIFT: false, // Speed boost
     };
 
-    // Camera follow parameters - adjusted for better third-person feel
+    // Camera looks 
     this.cameraOffset = new THREE.Vector3(0, 2, -10); // Position behind and above
     this.cameraLookAhead = new THREE.Vector3(0, 0, -5);
 
     // Movement parameters
     this.moveSpeed = 0.2;
     this.turnSpeed = 0.03;
-    this.bankSpeed = 0.02;
+    this.bankSpeed = 0.05;
 
     // Update event listeners for keydown and keyup
     window.addEventListener("keydown", this.onKeyDown.bind(this));
@@ -139,7 +373,7 @@ class SpaceFlythrough {
 
     // Hover variables
     this.hoverSpeed = 0.1;
-    this.hoverDirection = 1; // Controls the oscillation direction
+    this.hoverDirection = 1; // Controlling the oscillation direction
     this.hoverAngle = 0; // For random-like oscillation
     this.hoverOffsetX = 0; // X-axis offset
     this.hoverOffsetY = 0; // Y-axis offset
@@ -147,6 +381,7 @@ class SpaceFlythrough {
     this.trailParticles = [];
     this.maxTrailParticles = 200; // limit particles
 
+    // Silver Surfer Trail 
     this.trailMaterial = new THREE.PointsMaterial({
       size: 0.3,
       transparent: true,
@@ -161,6 +396,7 @@ class SpaceFlythrough {
     this.trailMesh = null;
 
     this.trailPositions = new Float32Array(this.maxTrailParticles * 3); // x, y, z per particle
+    this.trailGeometry = new THREE.BufferGeometry();
     this.trailGeometry.setAttribute(
       "position",
       new THREE.BufferAttribute(this.trailPositions, 3)
@@ -172,7 +408,7 @@ class SpaceFlythrough {
 
   generateTrail() {
     if (this.trailMesh) {
-      this.scene.remove(this.trailMesh); // remove previous
+      this.scene.remove(this.trailMesh); 
     }
 
     if (this.trailHistory.length < 2) return;
@@ -199,6 +435,7 @@ class SpaceFlythrough {
     this.scene.add(this.trailMesh);
   }
 
+  // function for surfer trail 
   updateRibbonTrail() {
     if (!this.spaceModel) return;
 
@@ -260,14 +497,15 @@ class SpaceFlythrough {
 
     this.updateRibbonTrail();
 
-    // Call update on our dummy controls
+    // Calling update on our dummy controls
     this.controls.update();
 
-    // Render the scene
+    // Rendering the scene
     this.composer.render();
     this.renderer.render(this.scene, this.camera);
   }
 
+  // Lighting working: 
   addLighting() {
     const ambientLight = new THREE.AmbientLight(0x404040, 2); // Brighter ambient light
     this.scene.add(ambientLight);
@@ -282,6 +520,7 @@ class SpaceFlythrough {
     this.scene.add(this.pointLight);
   }
 
+  // Starfield Creation
   createStarfield() {
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 20000;
@@ -292,9 +531,9 @@ class SpaceFlythrough {
     for (let i = 0; i < starCount * 3; i += 3) {
       // Use a more uniform distribution to avoid center clustering
       // This creates a more even distribution in a cube rather than a sphere
-      positions[i] = (Math.random() - 0.5) * 900; // X position
-      positions[i + 1] = (Math.random() - 0.5) * 500; // Y position
-      positions[i + 2] = (Math.random() - 0.5) * 300; // Z position
+      positions[i] = (Math.random() - 0.5) * 1000; // X position
+      positions[i + 1] = (Math.random() - 0.5) * 1000; // Y position
+      positions[i + 2] = (Math.random() - 0.5) * 600; // Z position
 
       // Create a minimum distance from center to avoid clustering
       const distFromCenter = Math.sqrt(
@@ -356,11 +595,11 @@ class SpaceFlythrough {
     starGeometry.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
     starGeometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
-    // Create a circular glow texture for stars
+    // Making a circular glow texture for stars
     const starTexture = this.createRealisticStarTexture();
 
     const starMaterial = new THREE.PointsMaterial({
-      size: 0.6, // Larger size for more prominent stars
+      size: 0.6, 
       transparent: true,
       opacity: 0.95, // Slightly higher opacity
       vertexColors: true,
@@ -385,12 +624,12 @@ class SpaceFlythrough {
     context.fillStyle = "black";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Create a circular gradient for a realistic star appearance
+    // Creating a circular gradient for a realistic star appearance
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const radius = canvas.width / 3;
 
-    // Create a radial gradient with more pronounced light effect
+    // Creating a radial gradient with more pronounced light effect
     const gradient = context.createRadialGradient(
       centerX,
       centerY,
@@ -412,7 +651,7 @@ class SpaceFlythrough {
     context.arc(centerX, centerY, radius, 0, Math.PI * 2);
     context.fill();
 
-    // Add a subtle cross-shaped light diffraction effect
+    // Adding a subtle cross-shaped light diffraction effect
     context.globalCompositeOperation = "lighter";
 
     // Horizontal light streak
@@ -451,6 +690,7 @@ class SpaceFlythrough {
     return texture;
   }
 
+  // Function to load Galactus
   loadGalactus(path, position, scale) {
     const loader = new GLTFLoader();
     loader.load(
@@ -490,8 +730,7 @@ class SpaceFlythrough {
     );
   }
   
-  
-
+  // Function to load Surfer
   loadSpaceModel(path) {
     const loader = new GLTFLoader();
     loader.load(
@@ -504,6 +743,7 @@ class SpaceFlythrough {
 
         // Position the model in front of the camera initially
         this.spaceModel.position.set(0, 0, -3);
+        this.spaceModel.rotation.z = Math.PI;
 
         // Enhance materials to make Silver Surfer more visible
         this.spaceModel.traverse((child) => {
@@ -522,8 +762,6 @@ class SpaceFlythrough {
         });          
 
         this.scene.add(this.spaceModel);
-
-        // Now that model is loaded, position camera behind it
         this.updateCamera();
       },
       (progress) => {
@@ -560,10 +798,10 @@ class SpaceFlythrough {
 
     // Calculate the current speed (with boost if SHIFT is pressed)
     const currentSpeed = this.keyState["SHIFT"]
-      ? this.moveSpeed * 2
+      ? this.moveSpeed * 2.5
       : this.moveSpeed;
 
-    // Get the model's forward direction vector (negative Z in model space)
+    // Get the model's forward direction vector 
     const modelForward = new THREE.Vector3(0, 0, -1); // <- model's forward
     modelForward.applyQuaternion(this.spaceModel.quaternion);
     modelForward.normalize();
@@ -619,14 +857,13 @@ class SpaceFlythrough {
     }
   }
 
-  // Apply subtle hovering effect (non-looping, gentle)
+  // Apply subtle hovering effect 
   applyHoveringEffect() {
     if (this.spaceModel) {
       // Apply subtle random-like movement in X and Y directions
       this.hoverOffsetX = Math.sin(this.hoverAngle) * 0.002; // Small oscillation on X-axis
       this.hoverOffsetY = Math.cos(this.hoverAngle) * 0.002; // Small oscillation on Y-axis
       this.hoverOffsetZ = Math.cos(this.hoverAngle) * 0.005; // Small oscillation on Z-axis
-
       this.spaceModel.position.x += this.hoverOffsetX;
       this.spaceModel.position.y += this.hoverOffsetY;
       this.spaceModel.position.z += this.hoverOffsetZ;
@@ -636,32 +873,7 @@ class SpaceFlythrough {
     }
   }
 
-//   updateCamera() {
-//     if (!this.spaceModel) return;
-
-//     // Calculate the desired camera position
-//     const modelPosition = new THREE.Vector3();
-//     this.spaceModel.getWorldPosition(modelPosition);
-
-//     // Calculate offset position in world space
-//     const offset = this.cameraOffset.clone();
-//     offset.applyQuaternion(this.spaceModel.quaternion);
-
-//     // Set camera position behind the model
-//     const targetPosition = modelPosition.clone().add(offset);
-//     this.camera.position.copy(targetPosition);
-
-//     // Calculate look-ahead point
-//     const lookAhead = this.cameraLookAhead.clone();
-//     lookAhead.applyQuaternion(this.spaceModel.quaternion);
-//     const lookAtPoint = modelPosition.clone().add(lookAhead);
-
-//     // Make the camera look at the model
-//     this.camera.lookAt(lookAtPoint);
-//     this.controls.target.copy(modelPosition);
-//     this.controls.update();
-//   }
-    updateCamera() {
+  updateCamera() {
         if (!this.spaceModel) return;
     
         // Get Silver Surfer's world position
@@ -688,9 +900,7 @@ class SpaceFlythrough {
         this.controls.update();
     }
   
-  
-  
-
+    // Creating the sun 
   createSun() {
     const loader = new GLTFLoader();
     loader.load(
@@ -736,8 +946,9 @@ class SpaceFlythrough {
       }
     );
   }
+
+  // Load Function 
   loadSaturn(path, position, scale) {
-    console.log("hey")
     const loader = new GLTFLoader();
     loader.load(
       path,
@@ -768,9 +979,7 @@ class SpaceFlythrough {
     );
   }
   
-  
-  
-
+  // Window Resizer 
   onWindowResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
@@ -778,5 +987,6 @@ class SpaceFlythrough {
   }
 }
 
-// Initialize the scene
-const spaceFlythrough = new SpaceFlythrough("scene-container");
+// EOF 
+// Good work team 
+// Thanks TA for grading 
