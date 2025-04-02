@@ -56,7 +56,7 @@ This project leverages Three.js to create a high-performance, space-themed 3D vi
 - SketchFab was utilized for providing 3D assets. 
 - You can find an in-depth elaboration on our acknowledgements in the supplemental document.
 ## Supplemental Document
-For a detailed explanation of the project, including design decisions, implementation details, and acknowledgments, refer to the supplemental PDF document: [CSI4130_Assignment4_Supplemental.pdf](./CSI4130_Assignment4_Supplemental.pdf)
+For a detailed explanation of the project, including design decisions, implementation details, and acknowledgments, refer to the supplemental PDF document: [CSI4130_Assignment4_Supplemental.pdf](./CSI4130_Assignment4_Group17_SupplementalDocument.pdf)
 
 ## Contact
 For inquiries or contributions, contact us via GitHub or email.
